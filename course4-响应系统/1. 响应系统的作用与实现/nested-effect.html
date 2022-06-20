@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nested Effect</title>
+  </head>
+  <body>
+    <script>
+      const bucket = new WeakMap();
+      let activeEffect;
+      const effectStack = [];
+
+      const data = {
+        foo: true,
+        bar: true,
+      };
+
+      const obj = new Proxy(data, {
+        get(target, key) {
+          track(target, key);
+          return target[key];
+        },
+
+        set(target, key, value) {
+          target[key] = value;
+          trigger(target, key);
+        },
+      });
+
+      function track(target, key) {
+        if (!activeEffect) return;
+        let depMaps = bucket.get(target);
+        if (!depMaps) {
+          bucket.set(target, (depMaps = new Map()));
+        }
+        let dep = depMaps.get(key);
+        if (!dep) {
+          depMaps.set(key, (dep = new Set()));
+        }
+        dep.add(activeEffect);
+        activeEffect.deps.push(dep);
+      }
+
+      function trigger(target, key) {
+        let depMaps = bucket.get(target);
+        if (!depMaps) return;
+        let dep = depMaps.get(key);
+        if (!dep) return;
+        new Set(dep).forEach((fn) => fn());
+      }
+
+      function cleanup(effectFn) {
+        for (const dep of effectFn.deps) {
+          dep.delete(effectFn);
+        }
+        effectFn.deps.length = 0;
+      }
+
+      function effect(fn) {
+        const effectFn = () => {
+          cleanup(effectFn);
+          activeEffect = effectFn;
+          effectStack.push(effectFn);
+          fn();
+          effectStack.pop();
+          activeEffect = effectStack[effectStack.length - 1];
+        };
+        effectFn.deps = [];
+        effectFn();
+      }
+
+      let temp1, temp2;
+      effect(function effectFn1() {
+        console.log("Executing effectFn1");
+        effect(function effectFn2() {
+          console.log("Executing effectFn2");
+          temp2 = obj.bar;
+        });
+
+        temp1 = obj.foo;
+      });
+    </script>
+  </body>
+</html>

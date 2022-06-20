@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeakMap Demo</title>
+</head>
+<body>
+    <script>
+        const map = new Map();
+        const weakMap = new WeakMap();
+
+        (function () {
+            const foo = {foo: 1};
+            const bar = {bar: 2};
+
+            map.set(foo, 1);
+            weakMap.set(bar, 2);
+        })()
+
+        console.log(map.keys());
+        console.log(weakMap.keys());
+    </script>
+</body>
+</html>

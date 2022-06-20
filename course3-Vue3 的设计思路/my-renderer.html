@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Renderer</title>
+  </head>
+  <body>
+    <script>
+      function renderer(vnode, elementRoot) {
+        if (typeof vnode.tag === "string") {
+          mountElement(vnode, elementRoot);
+        } else if (typeof vnode.tag === "function") {
+          mountFunctionComponent(vnode, elementRoot);
+        } else if (typeof vnode.tag === "object") {
+          mountObjectComponent(vnode, elementRoot);
+        }
+      }
+
+      function mountElement(obj, elementRoot) {
+        const el = document.createElement(obj.tag);
+        for (const key in obj.props) {
+          if (/^on/.test(key)) {
+            el.addEventListener(key.substring(2).toLowerCase(), obj.props[key]);
+          }
+        }
+        if (typeof obj.children === "string") {
+          el.appendChild(document.createTextNode(obj.children));
+        } else if (Array.isArray(obj.children)) {
+          obj.children.forEach((child) => renderer(child, el));
+        }
+        elementRoot.appendChild(el);
+      }
+
+      function mountFunctionComponent(vnode, container) {
+        const subtree = vnode.tag();
+        renderer(subtree, container);
+      }
+
+      function mountObjectComponent(vnode, container) {
+        const subtree = vnode.tag.render();
+        renderer(subtree, container);
+      }
+      /*
+        const obj = {
+            tag: 'div',
+            props: {
+                onClick: () => alert("Hello")
+            },
+            children: 'Click Me!'
+        }
+        */
+      const MyComponent1 = () => {
+        return {
+          tag: "div",
+          children: "Here is function component",
+        };
+      };
+
+      const MyComponent2 = {
+        render() {
+          return {
+            tag: "div",
+            children: "Here is object component",
+          };
+        },
+      };
+
+      const obj = {
+        tag: "div",
+        children: [
+          {
+            tag: "div",
+            props: {
+              onClick: () => alert("Hello"),
+            },
+            children: "Click Me!",
+          },
+          {
+            tag: MyComponent1,
+          },
+          {
+            tag: MyComponent2,
+          },
+        ],
+      };
+
+      renderer(obj, document.body);
+    </script>
+  </body>
+</html>
